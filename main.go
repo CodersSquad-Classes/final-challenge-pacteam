@@ -22,7 +22,7 @@ const (
 
 func init() {
 	var err error
-	level, _, err = ebitenutil.NewImageFromFile("assets/level-2.png")
+	level, _, err = ebitenutil.NewImageFromFile("assets/level.png")
 	if err != nil {
 		log.Fatal(err)
 	}
