@@ -7,14 +7,6 @@ import (
 )
 
 type Game struct {
-	gopher *char
-}
-
-type char struct {
-	x  int
-	y  int
-	vx int
-	vy int
 }
 
 const (
