@@ -13,11 +13,16 @@ type Game struct {
 }
 
 var level *ebiten.Image
+var coin *ebiten.Image
 
 const (
 	/* Screen settings */
 	screenWidth  = 650
-	screenHeight = 720
+	screenHeight = 770
+)
+const (
+	tileSize = 16
+	tileXNum = 25
 )
 
 func init() {
@@ -26,11 +31,25 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	var err2 error
+	coin, _, err2 = ebitenutil.NewImageFromFile("assets/coin.png")
+	if err2 != nil {
+		log.Fatal(err2)
+	}
 }
 
 // *** Core Ebiten functions *** //
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.DrawImage(level, nil)
+	ebitenutil.DebugPrint(screen, "Score: ")
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(0, 50)
+	screen.DrawImage(level, op)
+
+	op.GeoM.Scale(0.02, 0.02)
+	op.GeoM.Translate(0, 200)
+	screen.DrawImage(coin, op)
+
 }
 
 func (g *Game) Update() error {
@@ -42,8 +61,6 @@ func (g *Game) Update() error {
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
 }
-
-// *** *** //
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
