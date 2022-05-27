@@ -5,36 +5,37 @@ import (
 )
 
 type Enemy struct {
-	xPos int
-	yPos int
+	xPos  int
+	yPos  int
+	color [4]float64
 }
 
-func moveRandom(e Enemy) {
+func (e *Enemy) moveRandom() {
 	dir := rand.Intn(3)
 	switch dir {
 	case 0: //up
 		if isWall(e.xPos, e.yPos-1) {
 			e.yPos -= 1
 		} else {
-			moveRandom(e)
+			e.moveRandom()
 		}
 	case 1: //down
 		if isWall(e.xPos, e.yPos+1) {
 			e.yPos += 1
 		} else {
-			moveRandom(e)
+			e.moveRandom()
 		}
 	case 2: //right
 		if isWall(e.xPos+1, e.yPos) {
 			e.xPos += 1
 		} else {
-			moveRandom(e)
+			e.moveRandom()
 		}
 	default: //left
 		if isWall(e.xPos-1, e.yPos) {
 			e.xPos -= 1
 		} else {
-			moveRandom(e)
+			e.moveRandom()
 		}
 	}
 }
