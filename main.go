@@ -14,14 +14,16 @@ type Game struct {
 }
 
 var level *ebiten.Image
+var tile *ebiten.Image
 var coin *ebiten.Image
 var ghost *ebiten.Image
 var numEnemies int
+var coordinates [500][2]int
 
 const (
 	/* Screen settings */
-	screenWidth  = 650
-	screenHeight = 770
+	screenWidth  = 700 //mitad tablero 325
+	screenHeight = 750 //mitad tablero
 )
 const (
 	tileSize = 16
@@ -31,6 +33,11 @@ const (
 func init() {
 	var err error
 	level, _, err = ebitenutil.NewImageFromFile("assets/level.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tile, _, err = ebitenutil.NewImageFromFile("assets/tile.png")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,11 +57,34 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrint(screen, "Score: ")
 
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(0, 50)
-	screen.DrawImage(level, op)
 
+	op.GeoM.Translate(0, 50)
+	for i := 0; i < 20; i++ {
+		screen.DrawImage(tile, op)
+		op.GeoM.Translate(35, 0)
+	}
+	op.GeoM.Reset()
+	op.GeoM.Translate(0, 50)
+	for i := 0; i < 20; i++ {
+		screen.DrawImage(tile, op)
+		op.GeoM.Translate(0, 35)
+	}
+	op.GeoM.Reset()
+	op.GeoM.Translate(665, 50)
+	for i := 0; i < 20; i++ {
+		screen.DrawImage(tile, op)
+		op.GeoM.Translate(0, 35)
+	}
+	op.GeoM.Reset()
+	op.GeoM.Translate(0, 715)
+	for i := 0; i < 20; i++ {
+		screen.DrawImage(tile, op)
+		op.GeoM.Translate(35, 0)
+	}
+
+	op.GeoM.Reset()
 	op.GeoM.Scale(0.02, 0.02)
-	op.GeoM.Translate(0, 200)
+	op.GeoM.Translate(100, 200)
 	screen.DrawImage(coin, op)
 
 	for _, e := range g.enemies {
@@ -62,13 +92,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op.ColorM.Reset()
 		op.GeoM.Scale(0.05, 0.05)
 		op.GeoM.Translate(float64(e.xPos), float64(e.yPos))
-		//op.ColorM.Apply(color.RGBA{0xff, 0, 0, 0xff})
-
-		//op.ColorM.Translate(0, 0, 250, 0)
-		//op.ColorM.Translate(200, 200, 0, 0)
 		op.ColorM.Translate(e.color[0], e.color[1], e.color[2], e.color[3])
 		screen.DrawImage(ghost, op)
 	}
+
 }
 
 func (g *Game) Update() error {
