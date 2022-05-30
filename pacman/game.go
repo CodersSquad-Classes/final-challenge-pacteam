@@ -6,7 +6,8 @@ import (
 )
 
 type Game struct {
-	scene *scene
+	scene   *scene
+	enemies []Enemy
 }
 
 const (
@@ -28,7 +29,7 @@ var dotBig *ebiten.Image
 var pacman *ebiten.Image
 var ghost *ebiten.Image
 
-func NewGame() *Game {
+func NewGame(numEnemies int) *Game {
 	g := &Game{}
 
 	g.scene = createScene(nil)
@@ -46,6 +47,18 @@ func NewGame() *Game {
 	sizeW = ((width*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 	sizeH = ((height*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 
+	colors := [8][4]float64{{0, 209, 255, 0}, {30, 0, 210, 0}, {0, 0, 0, 0}, {0, 0, 131, 0}, {0, 0, 131, 0}, {2, 2, 0, 0}, {0, 10, 0, 0}, {0, 5, 5, 0}}
+	enemiesCoord := [8][2]int{{384, 320}, {416, 320}, {448, 320}, {480, 320}, {384, 352}, {416, 352}, {448, 352}, {480, 352}}
+	en := make([]Enemy, numEnemies)
+	for i := 0; i < numEnemies; i++ {
+		en[i] = Enemy{
+			xPos:  enemiesCoord[i][0],
+			yPos:  enemiesCoord[i][1],
+			color: colors[i],
+		}
+	}
+	g.enemies = en
+
 	return g
 }
 
@@ -54,6 +67,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func (g *Game) Update() error {
+	for _, enemy := range g.enemies {
+		enemy.moveRandom()
+	}
 	return nil
 }
 
@@ -93,14 +109,21 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			if string(g.scene.stage.tile_matrix[i][j]) == "X" {
 				screen.DrawImage(dotBig, options)
 			}
-
-			if string(g.scene.stage.tile_matrix[i][j]) == "G" {
-				screen.DrawImage(ghost, options)
-			}
-
+			/*
+				if string(g.scene.stage.tile_matrix[i][j]) == "G" {
+					screen.DrawImage(ghost, options)
+					fmt.Print("x: ", x, " y: ", y, "\n")
+				}*/
 			if string(g.scene.stage.tile_matrix[i][j]) == "P" {
 				screen.DrawImage(pacman, options)
 			}
 		}
+
 	}
+
+	//Draw enemies
+	for _, e := range g.enemies {
+		e.Draw(screen)
+	}
+
 }
