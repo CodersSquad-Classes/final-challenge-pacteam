@@ -5,7 +5,7 @@ type stage struct {
 }
 
 // pacman map
-var level_1 = stage{
+var level1 = stage{
 	[]string{
 		"1111111111111111111",
 		"1000000001000000001",
@@ -27,7 +27,7 @@ var level_1 = stage{
 	},
 }
 
-var level_2 = stage{
+var level2 = stage{
 	[]string{
 		"1111111111111111111111111111111111111111",
 		"1000000000000000000000000000000000000001",
@@ -63,7 +63,7 @@ var level_2 = stage{
 	},
 }
 
-var level_3 = stage{
+var level3 = stage{
 	[]string{
 		"############################",
 		"#............##............#",
@@ -93,4 +93,4 @@ var level_3 = stage{
 }
 
 // having a default stage since we could easily expand to more levels
-var default_stage = &level_3
+var default_stage = &level3

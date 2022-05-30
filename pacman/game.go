@@ -43,8 +43,8 @@ func NewGame() *Game {
 	height = len(g.scene.stage.tile_matrix)
 	width = len(g.scene.stage.tile_matrix[0])
 
-	sizeW = ((width*tile_size)/background_image_size + 1) * background_image_size
-	sizeH = ((height*tile_size)/background_image_size + 1) * background_image_size
+	sizeW = ((width*tileSize)/backgroundImageSize + 1) * backgroundImageSize
+	sizeH = ((height*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 
 	return g
 }
@@ -59,13 +59,13 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	// drawing background image
-	for i := 0; i < sizeH/tile_size; i++ {
-		y := float64(i * tile_size)
+	for i := 0; i < sizeH/tileSize; i++ {
+		y := float64(i * tileSize)
 
-		for j := 0; j < sizeW/tile_size; j++ {
+		for j := 0; j < sizeW/tileSize; j++ {
 			options := &ebiten.DrawImageOptions{}
 
-			x := float64(j * tile_size)
+			x := float64(j * tileSize)
 
 			options.GeoM.Translate(x, y)
 			screen.DrawImage(bg, options)
@@ -77,8 +77,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		for j := 0; j < width; j++ {
 			options := &ebiten.DrawImageOptions{}
 
-			x := float64(j * tile_size)
-			y := float64(i * tile_size)
+			x := float64(j * tileSize)
+			y := float64(i * tileSize)
 
 			options.GeoM.Translate(x, y)
 

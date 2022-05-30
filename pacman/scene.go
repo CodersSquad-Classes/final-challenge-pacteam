@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	background_image_size = 100
-	tile_size             = 32
+	backgroundImageSize = 100
+	tileSize            = 32
 )
 
 type scene struct {
