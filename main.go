@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	ebiten.SetWindowSize(650, 720)
+	ebiten.SetWindowSize(896, 768)
 	ebiten.SetWindowTitle("Pacman by Pacteam")
 
 	game, err := pacman.NewGame()
