@@ -14,27 +14,12 @@ const (
 	ScreenHeight = 768
 )
 
-func NewGame() (*Game, error) {
-	g := &Game{}
-
-	var err error
-	g.scene = createScene(nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return g, nil
-}
-
-func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return ScreenWidth, ScreenHeight
-}
-
-func (g *Game) Update() error {
-
-	return nil
-}
+var (
+	height = 0
+	width  = 0
+	sizeH  = 0
+	sizeW  = 0
+)
 
 var wall *ebiten.Image
 var bg *ebiten.Image
@@ -43,7 +28,10 @@ var dotBig *ebiten.Image
 var pacman *ebiten.Image
 var ghost *ebiten.Image
 
-func (g *Game) Draw(screen *ebiten.Image) {
+func NewGame() *Game {
+	g := &Game{}
+
+	g.scene = createScene(nil)
 
 	wall, _, _ = ebitenutil.NewImageFromFile("assets/tile.png")
 	bg, _, _ = ebitenutil.NewImageFromFile("assets/background.png")
@@ -52,12 +40,24 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	pacman, _, _ = ebitenutil.NewImageFromFile("assets/pacman1.png")
 	ghost, _, _ = ebitenutil.NewImageFromFile("assets/ghostRed1.png")
 
-	height := len(g.scene.stage.tile_matrix)
-	width := len(g.scene.stage.tile_matrix[0])
+	height = len(g.scene.stage.tile_matrix)
+	width = len(g.scene.stage.tile_matrix[0])
 
-	sizeW := ((width*tile_size)/background_image_size + 1) * background_image_size
-	sizeH := ((height*tile_size)/background_image_size + 1) * background_image_size
+	sizeW = ((width*tile_size)/background_image_size + 1) * background_image_size
+	sizeH = ((height*tile_size)/background_image_size + 1) * background_image_size
 
+	return g
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	return ScreenWidth, ScreenHeight
+}
+
+func (g *Game) Update() error {
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
 	// drawing background image
 	for i := 0; i < sizeH/tile_size; i++ {
 		y := float64(i * tile_size)
