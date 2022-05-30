@@ -38,11 +38,19 @@ func (g *Game) Update() error {
 
 var wall *ebiten.Image
 var bg *ebiten.Image
+var dotSmall *ebiten.Image
+var dotBig *ebiten.Image
+var pacman *ebiten.Image
+var ghost *ebiten.Image
 
 func (g *Game) Draw(screen *ebiten.Image) {
 
 	wall, _, _ = ebitenutil.NewImageFromFile("assets/tile.png")
 	bg, _, _ = ebitenutil.NewImageFromFile("assets/background.png")
+	dotSmall, _, _ = ebitenutil.NewImageFromFile("assets/dotSmall.png")
+	dotBig, _, _ = ebitenutil.NewImageFromFile("assets/dotBig.png")
+	pacman, _, _ = ebitenutil.NewImageFromFile("assets/pacman1.png")
+	ghost, _, _ = ebitenutil.NewImageFromFile("assets/ghostRed1.png")
 
 	height := len(g.scene.stage.tile_matrix)
 	width := len(g.scene.stage.tile_matrix[0])
@@ -76,6 +84,22 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 			if string(g.scene.stage.tile_matrix[i][j]) == "#" {
 				screen.DrawImage(wall, options)
+			}
+
+			if string(g.scene.stage.tile_matrix[i][j]) == "." {
+				screen.DrawImage(dotSmall, options)
+			}
+
+			if string(g.scene.stage.tile_matrix[i][j]) == "X" {
+				screen.DrawImage(dotBig, options)
+			}
+
+			if string(g.scene.stage.tile_matrix[i][j]) == "G" {
+				screen.DrawImage(ghost, options)
+			}
+
+			if string(g.scene.stage.tile_matrix[i][j]) == "P" {
+				screen.DrawImage(pacman, options)
 			}
 		}
 	}
