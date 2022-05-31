@@ -6,7 +6,8 @@ import (
 )
 
 type Game struct {
-	scene *scene
+	scene  *scene
+	player *Pacman
 }
 
 const (
@@ -46,6 +47,16 @@ func NewGame() *Game {
 	sizeW = ((width*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 	sizeH = ((height*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 
+	g.player = &Pacman{
+		sprite:  pacman,
+		x:       416,
+		y:       448,
+		targetX: 416,
+		targetY: 448,
+		dir:     right,
+		nextDir: right,
+		game:    g,
+	}
 	return g
 }
 
@@ -54,6 +65,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func (g *Game) Update() error {
+	g.player.move()
 	return nil
 }
 
@@ -82,25 +94,27 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 			options.GeoM.Translate(x, y)
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "#" {
+			if g.scene.stage.tile_matrix[i][j] == '#' {
 				screen.DrawImage(wall, options)
 			}
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "." {
+			if g.scene.stage.tile_matrix[i][j] == '.' {
 				screen.DrawImage(dotSmall, options)
 			}
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "X" {
+			if g.scene.stage.tile_matrix[i][j] == 'X' {
 				screen.DrawImage(dotBig, options)
 			}
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "G" {
+			if g.scene.stage.tile_matrix[i][j] == 'G' {
 				screen.DrawImage(ghost, options)
 			}
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "P" {
-				screen.DrawImage(pacman, options)
-			}
+			// if g.scene.stage.tile_matrix[i][j] == 'P' {
+			// 	screen.DrawImage(pacman, options)
+			// }
 		}
 	}
+
+	g.player.draw(screen)
 }
