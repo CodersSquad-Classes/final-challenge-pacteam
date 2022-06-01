@@ -11,7 +11,7 @@ func main() {
 	ebiten.SetWindowSize(pacman.ScreenWidth, pacman.ScreenHeight)
 	ebiten.SetWindowTitle("Pacman by Pacteam")
 
-	game := pacman.NewGame(2)
+	game := pacman.NewGame(1)
 
 	if err := ebiten.RunGame(game); err != nil {
 		panic(err)

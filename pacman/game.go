@@ -7,7 +7,7 @@ import (
 
 type Game struct {
 	scene   *scene
-	enemies []Enemy
+	enemies []*Enemy
 	player  *Pacman
 }
 
@@ -50,13 +50,19 @@ func NewGame(numEnemies int) *Game {
 
 	colors := [8][4]float64{{0, 209, 255, 0}, {30, 0, 210, 0}, {0, 0, 0, 0}, {0, 0, 131, 0}, {0, 0, 131, 0}, {2, 2, 0, 0}, {0, 10, 0, 0}, {0, 5, 5, 0}}
 	enemiesCoord := [8][2]int{{384, 320}, {416, 320}, {448, 320}, {480, 320}, {384, 352}, {416, 352}, {448, 352}, {480, 352}}
-	en := make([]Enemy, numEnemies)
+	en := make([]*Enemy, numEnemies)
 	for i := 0; i < numEnemies; i++ {
-		en[i] = Enemy{
-			xPos:  enemiesCoord[i][0],
-			yPos:  enemiesCoord[i][1],
-			color: colors[i],
+		en[i] = &Enemy{
+			xPos:    enemiesCoord[i][0],
+			yPos:    enemiesCoord[i][1],
+			targetX: enemiesCoord[i][0],
+			targetY: enemiesCoord[i][1],
+			color:   colors[i],
+			dir:     none,
+			nextDir: make(chan direction),
+			game:    g,
 		}
+		go en[i].travel()
 	}
 	g.enemies = en
 
@@ -79,7 +85,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 func (g *Game) Update() error {
 	for _, enemy := range g.enemies {
-		enemy.moveRandom()
+		enemy.move()
 	}
 	g.player.getInput()
 	g.player.move()
@@ -137,7 +143,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	//Draw enemies
 	for _, e := range g.enemies {
-		e.Draw(screen)
+		e.Draw(screen, g)
 	}
 
 	g.player.draw(screen)

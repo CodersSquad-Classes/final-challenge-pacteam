@@ -38,16 +38,7 @@ func (p *Pacman) move() {
 		p.nextTarget()
 	}
 	p.checkOpposites()
-	switch p.dir {
-	case up:
-		p.y--
-	case down:
-		p.y++
-	case left:
-		p.x--
-	case right:
-		p.x++
-	}
+
 }
 
 func (p *Pacman) checkOpposites() {
