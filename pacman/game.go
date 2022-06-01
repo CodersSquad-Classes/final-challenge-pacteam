@@ -8,6 +8,7 @@ import (
 type Game struct {
 	scene   *scene
 	enemies []Enemy
+	player  *Pacman
 }
 
 const (
@@ -59,6 +60,16 @@ func NewGame(numEnemies int) *Game {
 	}
 	g.enemies = en
 
+	g.player = &Pacman{
+		sprite:  pacman,
+		x:       416,
+		y:       448,
+		targetX: 416,
+		targetY: 448,
+		dir:     right,
+		nextDir: right,
+		game:    g,
+	}
 	return g
 }
 
@@ -70,6 +81,9 @@ func (g *Game) Update() error {
 	for _, enemy := range g.enemies {
 		enemy.moveRandom()
 	}
+	g.player.getInput()
+	g.player.move()
+
 	return nil
 }
 
@@ -98,25 +112,25 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 			options.GeoM.Translate(x, y)
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "#" {
+			if g.scene.stage.tile_matrix[i][j] == '#' {
 				screen.DrawImage(wall, options)
 			}
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "." {
+			if g.scene.stage.tile_matrix[i][j] == '.' {
 				screen.DrawImage(dotSmall, options)
 			}
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "X" {
+			if g.scene.stage.tile_matrix[i][j] == 'X' {
 				screen.DrawImage(dotBig, options)
 			}
-			/*
-				if string(g.scene.stage.tile_matrix[i][j]) == "G" {
-					screen.DrawImage(ghost, options)
-					fmt.Print("x: ", x, " y: ", y, "\n")
-				}*/
-			if string(g.scene.stage.tile_matrix[i][j]) == "P" {
-				screen.DrawImage(pacman, options)
-			}
+
+			// if g.scene.stage.tile_matrix[i][j] == 'G' {
+			// 	screen.DrawImage(ghost, options)
+			// }
+
+			// if g.scene.stage.tile_matrix[i][j] == 'P' {
+			// 	screen.DrawImage(pacman, options)
+			// }
 		}
 
 	}
@@ -126,4 +140,5 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		e.Draw(screen)
 	}
 
+	g.player.draw(screen)
 }
