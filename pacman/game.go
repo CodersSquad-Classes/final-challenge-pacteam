@@ -1,17 +1,26 @@
 package pacman
 
 import (
+	"image/color"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
+
+type Mode int
 
 type Game struct {
 	scene *scene
+	mode  Mode
 }
 
 const (
 	ScreenWidth  = 896
 	ScreenHeight = 768
+	ModeMenu
+	ModeGame
 )
 
 var (
@@ -49,58 +58,90 @@ func NewGame() *Game {
 	return g
 }
 
+func (g *Game) isKeyJustPressed() bool {
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		return true
+	}
+
+	// todo: add more key trackings here
+
+	return false
+}
+
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return ScreenWidth, ScreenHeight
 }
 
 func (g *Game) Update() error {
+	switch g.mode {
+	case ModeMenu:
+		if g.isKeyJustPressed() {
+			g.mode = ModeGame
+		}
+	}
+
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	// drawing background image
-	for i := 0; i < sizeH/tileSize; i++ {
-		y := float64(i * tileSize)
+	screen.Fill(color.RGBA{0x80, 0xa0, 0xc0, 0xff})
 
-		for j := 0; j < sizeW/tileSize; j++ {
-			options := &ebiten.DrawImageOptions{}
+	if g.mode == ModeMenu {
+		// draw text in middle of screen
+		titleTexts := []string{"PACMAN by Pacteam"}
+		texts := []string{"", "", "", "", "", "", "", "PRESS SPACE KEY"}
+		// screen.Draw(text, (ScreenWidth-w)/2, (ScreenHeight-w)/2, g.scene.font)
 
-			x := float64(j * tileSize)
-
-			options.GeoM.Translate(x, y)
-			screen.DrawImage(bg, options)
+		for i, l := range titleTexts {
+			x := (ScreenWidth - len(l)*tileSize) / 24
+			text.Draw(screen, l, x, (ScreenHeight-tileSize)/2+tileSize*i, color.White)
 		}
-	}
-
-	// drawing the actual walls
-	for i := 0; i < height; i++ {
-		for j := 0; j < width; j++ {
-			options := &ebiten.DrawImageOptions{}
-
-			x := float64(j * tileSize)
+	} else {
+		// drawing background image
+		for i := 0; i < sizeH/tileSize; i++ {
 			y := float64(i * tileSize)
 
-			options.GeoM.Translate(x, y)
+			for j := 0; j < sizeW/tileSize; j++ {
+				options := &ebiten.DrawImageOptions{}
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "#" {
-				screen.DrawImage(wall, options)
+				x := float64(j * tileSize)
+
+				options.GeoM.Translate(x, y)
+				screen.DrawImage(bg, options)
 			}
+		}
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "." {
-				screen.DrawImage(dotSmall, options)
-			}
+		// drawing the actual walls
+		for i := 0; i < height; i++ {
+			for j := 0; j < width; j++ {
+				options := &ebiten.DrawImageOptions{}
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "X" {
-				screen.DrawImage(dotBig, options)
-			}
+				x := float64(j * tileSize)
+				y := float64(i * tileSize)
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "G" {
-				screen.DrawImage(ghost, options)
-			}
+				options.GeoM.Translate(x, y)
 
-			if string(g.scene.stage.tile_matrix[i][j]) == "P" {
-				screen.DrawImage(pacman, options)
+				if string(g.scene.stage.tile_matrix[i][j]) == "#" {
+					screen.DrawImage(wall, options)
+				}
+
+				if string(g.scene.stage.tile_matrix[i][j]) == "." {
+					screen.DrawImage(dotSmall, options)
+				}
+
+				if string(g.scene.stage.tile_matrix[i][j]) == "X" {
+					screen.DrawImage(dotBig, options)
+				}
+
+				if string(g.scene.stage.tile_matrix[i][j]) == "G" {
+					screen.DrawImage(ghost, options)
+				}
+
+				if string(g.scene.stage.tile_matrix[i][j]) == "P" {
+					screen.DrawImage(pacman, options)
+				}
 			}
 		}
 	}
+
 }
