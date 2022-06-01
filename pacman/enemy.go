@@ -1,15 +1,15 @@
 package pacman
 
 import (
-	"fmt"
-	"math/rand"
 	"sync"
+
+	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Enemy struct {
-	mu               sync.Mutex
+	sync.Mutex
 	dir              direction
 	nextDir          chan direction
 	targetX, targetY int
@@ -28,8 +28,7 @@ func (e *Enemy) Draw(screen *ebiten.Image, g *Game) {
 func (e *Enemy) travel() {
 	for {
 		dir := direction(rand.Intn(4) + 1)
-
-		if !e.theresWall(dir) {
+		for i := rand.Intn(10) + 1; i > 0 && !e.theresWall(dir); i-- {
 			e.nextDir <- dir
 		}
 	}
@@ -38,6 +37,7 @@ func (e *Enemy) travel() {
 func (e *Enemy) updateTarget() {
 
 	e.dir = <-e.nextDir
+	e.Lock()
 	switch e.dir {
 	case up:
 		e.targetY -= tileSize
@@ -48,13 +48,13 @@ func (e *Enemy) updateTarget() {
 	case right:
 		e.targetX += tileSize
 	}
+	e.Unlock()
 }
 
 func (e *Enemy) move() {
 	if e.xPos == e.targetX && e.yPos == e.targetY {
 		e.updateTarget()
 	}
-	e.mu.Lock()
 	switch e.dir {
 	case up:
 		e.yPos--
@@ -65,7 +65,6 @@ func (e *Enemy) move() {
 	case right:
 		e.xPos++
 	}
-	e.mu.Unlock()
 }
 func (e *Enemy) theresWall(dir direction) bool {
 
@@ -81,13 +80,13 @@ func (e *Enemy) theresWall(dir direction) bool {
 	case right:
 		increaseX += tileSize
 	}
-	e.mu.Lock()
-	var i, j int
-	i = (e.yPos + increaseY) / tileSize
-	j = (e.xPos + increaseX) / tileSize
 
-	fmt.Println(dir, (e.xPos)/tileSize, (e.yPos)/tileSize, j, i, e.xPos, e.yPos, increaseX, increaseY, tileSize)
-	e.mu.Unlock()
+	e.Lock()
+	var i, j int
+	i = (e.targetY + increaseY) / tileSize
+	j = (e.targetX + increaseX) / tileSize
+	e.Unlock()
+
 	if e.game.scene.stage.tile_matrix[i][j] == '#' {
 		return true
 	}

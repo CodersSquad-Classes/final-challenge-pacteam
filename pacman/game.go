@@ -1,6 +1,9 @@
 package pacman
 
 import (
+	"math/rand"
+	"time"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
@@ -31,6 +34,9 @@ var pacman *ebiten.Image
 var ghost *ebiten.Image
 
 func NewGame(numEnemies int) *Game {
+
+	rand.Seed(time.Now().UnixNano())
+
 	g := &Game{}
 
 	g.scene = createScene(nil)
