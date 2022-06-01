@@ -65,7 +65,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func (g *Game) Update() error {
+	g.player.getInput()
 	g.player.move()
+
 	return nil
 }
 

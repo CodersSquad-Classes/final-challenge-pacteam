@@ -1,7 +1,10 @@
 package pacman
 
 import (
+	"math"
+
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 type direction int
@@ -34,6 +37,7 @@ func (p *Pacman) move() {
 	if p.x == p.targetX && p.y == p.targetY {
 		p.nextTarget()
 	}
+	p.checkOpposites()
 	switch p.dir {
 	case up:
 		p.y--
@@ -43,6 +47,22 @@ func (p *Pacman) move() {
 		p.x--
 	case right:
 		p.x++
+	}
+}
+
+func (p *Pacman) checkOpposites() {
+	if p.dir == right && p.nextDir == left {
+		p.dir = p.nextDir
+		p.targetX -= tileSize
+	} else if p.dir == left && p.nextDir == right {
+		p.dir = p.nextDir
+		p.targetX += tileSize
+	} else if p.dir == up && p.nextDir == down {
+		p.dir = p.nextDir
+		p.targetY += tileSize
+	} else if p.dir == down && p.nextDir == up {
+		p.dir = p.nextDir
+		p.targetY -= tileSize
 	}
 }
 
@@ -89,4 +109,28 @@ func (p *Pacman) theresWall(dir direction) bool {
 		return true
 	}
 	return false
+}
+
+func (p *Pacman) getInput() {
+	p.nextDir = none
+	var keys []ebiten.Key
+	keys = inpututil.AppendPressedKeys(keys)
+	duration := math.MaxInt
+	for _, key := range keys {
+		if inpututil.KeyPressDuration(key) < duration {
+			switch key {
+			case ebiten.KeyArrowDown:
+				p.nextDir = down
+			case ebiten.KeyArrowUp:
+				p.nextDir = up
+			case ebiten.KeyArrowLeft:
+				p.nextDir = left
+			case ebiten.KeyArrowRight:
+				p.nextDir = right
+			default:
+				continue
+			}
+			duration = inpututil.KeyPressDuration(key)
+		}
+	}
 }
