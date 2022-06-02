@@ -48,6 +48,7 @@ func (p *Pacman) move() {
 	case right:
 		p.x++
 	}
+
 }
 
 func (p *Pacman) checkOpposites() {
