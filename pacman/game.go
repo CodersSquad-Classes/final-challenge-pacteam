@@ -135,14 +135,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			if g.scene.stage.tile_matrix[i][j] == 'X' {
 				screen.DrawImage(dotBig, options)
 			}
-
-			// if g.scene.stage.tile_matrix[i][j] == 'G' {
-			// 	screen.DrawImage(ghost, options)
-			// }
-
-			// if g.scene.stage.tile_matrix[i][j] == 'P' {
-			// 	screen.DrawImage(pacman, options)
-			// }
 		}
 
 	}

@@ -25,18 +25,21 @@ func (e *Enemy) Draw(screen *ebiten.Image, g *Game) {
 	options.ColorM.Translate(e.color[0], e.color[1], e.color[2], e.color[3])
 	screen.DrawImage(ghost, options)
 }
+
 func (e *Enemy) travel() {
 	for {
 		dir := direction(rand.Intn(4) + 1)
-		for i := rand.Intn(10) + 1; i > 0 && !e.theresWall(dir); i-- {
+		for i := rand.Intn(10) + 1; i > 0 && !e.isWall(dir); i-- {
 			e.nextDir <- dir
 		}
 	}
 
 }
+
 func (e *Enemy) updateTarget() {
 
 	e.dir = <-e.nextDir
+
 	e.Lock()
 	switch e.dir {
 	case up:
@@ -66,7 +69,8 @@ func (e *Enemy) move() {
 		e.xPos++
 	}
 }
-func (e *Enemy) theresWall(dir direction) bool {
+
+func (e *Enemy) isWall(dir direction) bool {
 
 	var increaseX, increaseY int
 
@@ -90,5 +94,6 @@ func (e *Enemy) theresWall(dir direction) bool {
 	if e.game.scene.stage.tile_matrix[i][j] == '#' {
 		return true
 	}
+
 	return false
 }
