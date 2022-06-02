@@ -68,9 +68,9 @@ func (p *Pacman) checkOpposites() {
 
 func (p *Pacman) nextTarget() {
 
-	if p.nextDir != none && !p.theresWall(p.nextDir) {
+	if p.nextDir != none && !p.isWall(p.nextDir) {
 		p.dir = p.nextDir
-	} else if p.theresWall(p.dir) {
+	} else if p.isWall(p.dir) {
 		p.dir = none
 	}
 
@@ -86,7 +86,7 @@ func (p *Pacman) nextTarget() {
 	}
 }
 
-func (p *Pacman) theresWall(dir direction) bool {
+func (p *Pacman) isWall(dir direction) bool {
 
 	var increaseX, increaseY int
 
