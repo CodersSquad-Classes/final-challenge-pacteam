@@ -86,13 +86,7 @@ func NewGame() *Game {
 }
 
 func (g *Game) isKeyJustPressed() bool {
-	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		return true
-	}
-
-	// todo: add more key trackings here
-
-	return false
+	return inpututil.IsKeyJustPressed(ebiten.KeySpace)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
