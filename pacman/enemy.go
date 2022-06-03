@@ -37,7 +37,6 @@ func (e *Enemy) travel() {
 }
 
 func (e *Enemy) updateTarget() {
-
 	e.dir = <-e.nextDir
 
 	e.Lock()

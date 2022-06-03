@@ -60,7 +60,7 @@ func init() {
 
 	const dpi = 72
 	gameFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    float64(tileSize),
+		Size:    float64(tileSize) - 5,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
@@ -90,6 +90,24 @@ func NewGame() *Game {
 	sizeW = ((width*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 	sizeH = ((height*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 
+	colors := [8][4]float64{{0, 209, 255, 0}, {30, 0, 210, 0}, {0, 0, 0, 0}, {0, 0, 131, 0}, {0, 0, 131, 0}, {2, 2, 0, 0}, {0, 10, 0, 0}, {0, 5, 5, 0}}
+	enemiesCoord := [8][2]int{{384, 320}, {416, 320}, {448, 320}, {480, 320}, {384, 352}, {416, 352}, {448, 352}, {480, 352}}
+	en := make([]*Enemy, numEnemies)
+	for i := 0; i < numEnemies; i++ {
+		en[i] = &Enemy{
+			xPos:    enemiesCoord[i][0],
+			yPos:    enemiesCoord[i][1],
+			targetX: enemiesCoord[i][0],
+			targetY: enemiesCoord[i][1],
+			color:   colors[i],
+			dir:     none,
+			nextDir: make(chan direction),
+			game:    g,
+		}
+		go en[i].travel()
+	}
+	g.enemies = en
+
 	g.player = &Pacman{
 		sprite:  pacman,
 		x:       416,
@@ -104,8 +122,25 @@ func NewGame() *Game {
 	return g
 }
 
-func (g *Game) isSpaceJustPressed() bool {
-	return inpututil.IsKeyJustPressed(ebiten.KeySpace)
+func initializeEnemies(g *Game) {
+	colors := [8][4]float64{{0, 209, 255, 0}, {30, 0, 210, 0}, {0, 0, 0, 0}, {0, 0, 131, 0}, {0, 0, 131, 0}, {2, 2, 0, 0}, {0, 10, 0, 0}, {0, 5, 5, 0}}
+	enemiesCoord := [8][2]int{{384, 320}, {416, 320}, {448, 320}, {480, 320}, {384, 352}, {416, 352}, {448, 352}, {480, 352}}
+	en := make([]*Enemy, numEnemies)
+	for i := 0; i < numEnemies; i++ {
+		en[i] = &Enemy{
+			xPos:    enemiesCoord[i][0],
+			yPos:    enemiesCoord[i][1],
+			targetX: enemiesCoord[i][0],
+			targetY: enemiesCoord[i][1],
+			color:   colors[i],
+			dir:     none,
+			nextDir: make(chan direction),
+			game:    g,
+		}
+		go en[i].travel()
+	}
+
+	g.enemies = en
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -115,7 +150,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 func (g *Game) Update() error {
 	switch g.mode {
 	case ModeMenu:
-		if g.isSpaceJustPressed() {
+		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+			initializeEnemies(g)
 			g.mode = ModeGame
 		}
 
@@ -127,15 +163,13 @@ func (g *Game) Update() error {
 			numEnemies -= 1
 		}
 	case ModeGame:
+		for _, enemy := range g.enemies {
+			enemy.move()
+		}
 
+		g.player.getInput()
+		g.player.move()
 	}
-
-	for _, enemy := range g.enemies {
-		enemy.move()
-	}
-
-	g.player.getInput()
-	g.player.move()
 
 	return nil
 }
@@ -145,7 +179,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		screen.Fill(color.Gray{0x7f})
 
 		titleTexts := []string{"PACMAN by Pacteam"}
-		texts := []string{"", "", "ENEMIES (w = +1, s = -1): "}
+		texts := []string{"", "# of ENEMIES"}
+		instructionsText := []string{"", "", "(w = +1, s = -1, space = START):"}
 		enemiesText := []string{"", "", "", "", "", fmt.Sprint(numEnemies)}
 
 		for i, l := range titleTexts {
@@ -159,6 +194,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 
 		for i, l := range enemiesText {
+			x := (ScreenWidth - len(l)*tileSize) / 24
+			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.Black)
+		}
+
+		for i, l := range instructionsText {
 			x := (ScreenWidth - len(l)*tileSize) / 24
 			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.Black)
 		}
@@ -201,25 +241,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			}
 		}
 
-		// setting up and drawing the enemies
-		colors := [8][4]float64{{0, 209, 255, 0}, {30, 0, 210, 0}, {0, 0, 0, 0}, {0, 0, 131, 0}, {0, 0, 131, 0}, {2, 2, 0, 0}, {0, 10, 0, 0}, {0, 5, 5, 0}}
-		enemiesCoord := [8][2]int{{384, 320}, {416, 320}, {448, 320}, {480, 320}, {384, 352}, {416, 352}, {448, 352}, {480, 352}}
-		en := make([]*Enemy, numEnemies)
-		for i := 0; i < numEnemies; i++ {
-			en[i] = &Enemy{
-				xPos:    enemiesCoord[i][0],
-				yPos:    enemiesCoord[i][1],
-				targetX: enemiesCoord[i][0],
-				targetY: enemiesCoord[i][1],
-				color:   colors[i],
-				dir:     none,
-				nextDir: make(chan direction),
-				game:    g,
-			}
-			go en[i].travel()
-		}
-		g.enemies = en
-
+		// drawing the enemies
 		for _, e := range g.enemies {
 			e.Draw(screen, g)
 		}
@@ -227,8 +249,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.player.draw(screen)
 	} else {
 		// we're in the game over screen
-
-		screen.Fill(color.RGBA{0x80, 0xa0, 0xc0, 0xff})
+		screen.Fill(color.Black)
 
 		titleTexts := []string{"GAME OVER"}
 
