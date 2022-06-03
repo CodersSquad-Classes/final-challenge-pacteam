@@ -1,6 +1,7 @@
 package pacman
 
 import (
+	"fmt"
 	"image/color"
 	"math/rand"
 	"time"
@@ -35,11 +36,12 @@ const (
 )
 
 var (
-	height   = 0
-	width    = 0
-	sizeH    = 0
-	sizeW    = 0
-	gameFont font.Face
+	height     = 0
+	width      = 0
+	sizeH      = 0
+	sizeW      = 0
+	numEnemies = 8
+	gameFont   font.Face
 )
 
 var wall *ebiten.Image
@@ -68,8 +70,7 @@ func init() {
 	}
 }
 
-func NewGame(numEnemies int) *Game {
-
+func NewGame() *Game {
 	rand.Seed(time.Now().UnixNano())
 
 	g := &Game{}
@@ -121,7 +122,7 @@ func NewGame(numEnemies int) *Game {
 	return g
 }
 
-func (g *Game) isKeyJustPressed() bool {
+func (g *Game) isSpaceJustPressed() bool {
 	return inpututil.IsKeyJustPressed(ebiten.KeySpace)
 }
 
@@ -132,8 +133,16 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 func (g *Game) Update() error {
 	switch g.mode {
 	case ModeMenu:
-		if g.isKeyJustPressed() {
+		if g.isSpaceJustPressed() {
 			g.mode = ModeGame
+		}
+
+		if inpututil.IsKeyJustPressed(ebiten.KeyW) && numEnemies < 8 {
+			numEnemies += 1
+		}
+
+		if inpututil.IsKeyJustPressed(ebiten.KeyS) && numEnemies > 1 {
+			numEnemies -= 1
 		}
 	case ModeGame:
 
@@ -150,20 +159,25 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	if g.mode == ModeMenu {
-		screen.Fill(color.RGBA{0x80, 0xa0, 0xc0, 0xff})
+		screen.Fill(color.Gray{0x7f})
 
-		// draw text in middle of screen
 		titleTexts := []string{"PACMAN by Pacteam"}
-		texts := []string{"", "", "", "", "", "", "", "PRESS SPACE KEY"}
+		texts := []string{"", "", "ENEMIES (w = +1, s = -1): "}
+		enemiesText := []string{"", "", "", "", "", fmt.Sprint(numEnemies)}
 
 		for i, l := range titleTexts {
 			x := (ScreenWidth - len(l)*tileSize) / 24
-			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.White)
+			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.Black)
 		}
 
 		for i, l := range texts {
 			x := (ScreenWidth - len(l)*tileSize) / 24
-			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.White)
+			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.Black)
+		}
+
+		for i, l := range enemiesText {
+			x := (ScreenWidth - len(l)*tileSize) / 24
+			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.Black)
 		}
 	} else if g.mode == ModeGame {
 		// drawing background image
