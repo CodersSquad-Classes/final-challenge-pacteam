@@ -5,8 +5,11 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 )
 
 type Mode int
@@ -19,15 +22,20 @@ type Game struct {
 const (
 	ScreenWidth  = 896
 	ScreenHeight = 768
-	ModeMenu
+)
+
+const (
+	ModeMenu Mode = iota
 	ModeGame
+	ModeGameOver
 )
 
 var (
-	height = 0
-	width  = 0
-	sizeH  = 0
-	sizeW  = 0
+	height   = 0
+	width    = 0
+	sizeH    = 0
+	sizeW    = 0
+	gameFont font.Face
 )
 
 var wall *ebiten.Image
@@ -36,6 +44,25 @@ var dotSmall *ebiten.Image
 var dotBig *ebiten.Image
 var pacman *ebiten.Image
 var ghost *ebiten.Image
+
+func init() {
+	tt, err := opentype.Parse(fonts.PressStart2P_ttf)
+
+	if err != nil {
+		panic(err)
+	}
+
+	const dpi = 72
+	gameFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+		Size:    float64(tileSize),
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+}
 
 func NewGame() *Game {
 	g := &Game{}
@@ -94,7 +121,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 		for i, l := range titleTexts {
 			x := (ScreenWidth - len(l)*tileSize) / 24
-			text.Draw(screen, l, x, (ScreenHeight-tileSize)/2+tileSize*i, color.White)
+			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.White)
+		}
+
+		for i, l := range texts {
+			x := (ScreenWidth - len(l)*tileSize) / 24
+			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.White)
 		}
 	} else {
 		// drawing background image
