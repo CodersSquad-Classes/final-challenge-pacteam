@@ -2,6 +2,8 @@ package pacman
 
 import (
 	"image/color"
+	"math/rand"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -15,8 +17,10 @@ import (
 type Mode int
 
 type Game struct {
-	scene *scene
-	mode  Mode
+	scene   *scene
+	mode    Mode
+	enemies []*Enemy
+	player  *Pacman
 }
 
 const (
@@ -64,7 +68,10 @@ func init() {
 	}
 }
 
-func NewGame() *Game {
+func NewGame(numEnemies int) *Game {
+
+	rand.Seed(time.Now().UnixNano())
+
 	g := &Game{}
 
 	g.scene = createScene(nil)
@@ -81,6 +88,35 @@ func NewGame() *Game {
 
 	sizeW = ((width*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 	sizeH = ((height*tileSize)/backgroundImageSize + 1) * backgroundImageSize
+
+	colors := [8][4]float64{{0, 209, 255, 0}, {30, 0, 210, 0}, {0, 0, 0, 0}, {0, 0, 131, 0}, {0, 0, 131, 0}, {2, 2, 0, 0}, {0, 10, 0, 0}, {0, 5, 5, 0}}
+	enemiesCoord := [8][2]int{{384, 320}, {416, 320}, {448, 320}, {480, 320}, {384, 352}, {416, 352}, {448, 352}, {480, 352}}
+	en := make([]*Enemy, numEnemies)
+	for i := 0; i < numEnemies; i++ {
+		en[i] = &Enemy{
+			xPos:    enemiesCoord[i][0],
+			yPos:    enemiesCoord[i][1],
+			targetX: enemiesCoord[i][0],
+			targetY: enemiesCoord[i][1],
+			color:   colors[i],
+			dir:     none,
+			nextDir: make(chan direction),
+			game:    g,
+		}
+		go en[i].travel()
+	}
+	g.enemies = en
+
+	g.player = &Pacman{
+		sprite:  pacman,
+		x:       416,
+		y:       448,
+		targetX: 416,
+		targetY: 448,
+		dir:     right,
+		nextDir: right,
+		game:    g,
+	}
 
 	return g
 }
@@ -99,19 +135,26 @@ func (g *Game) Update() error {
 		if g.isKeyJustPressed() {
 			g.mode = ModeGame
 		}
+	case ModeGame:
+
 	}
+
+	for _, enemy := range g.enemies {
+		enemy.move()
+	}
+	g.player.getInput()
+	g.player.move()
 
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.Fill(color.RGBA{0x80, 0xa0, 0xc0, 0xff})
-
 	if g.mode == ModeMenu {
+		screen.Fill(color.RGBA{0x80, 0xa0, 0xc0, 0xff})
+
 		// draw text in middle of screen
 		titleTexts := []string{"PACMAN by Pacteam"}
 		texts := []string{"", "", "", "", "", "", "", "PRESS SPACE KEY"}
-		// screen.Draw(text, (ScreenWidth-w)/2, (ScreenHeight-w)/2, g.scene.font)
 
 		for i, l := range titleTexts {
 			x := (ScreenWidth - len(l)*tileSize) / 24
@@ -122,7 +165,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			x := (ScreenWidth - len(l)*tileSize) / 24
 			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.White)
 		}
-	} else {
+	} else if g.mode == ModeGame {
 		// drawing background image
 		for i := 0; i < sizeH/tileSize; i++ {
 			y := float64(i * tileSize)
@@ -158,16 +201,27 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				if string(g.scene.stage.tile_matrix[i][j]) == "X" {
 					screen.DrawImage(dotBig, options)
 				}
-
-				if string(g.scene.stage.tile_matrix[i][j]) == "G" {
-					screen.DrawImage(ghost, options)
-				}
-
-				if string(g.scene.stage.tile_matrix[i][j]) == "P" {
-					screen.DrawImage(pacman, options)
-				}
 			}
 		}
+
+		// drawing the enemies
+		for _, e := range g.enemies {
+			e.Draw(screen, g)
+		}
+
+		g.player.draw(screen)
+	} else {
+		// we're in the game over screen
+
+		screen.Fill(color.RGBA{0x80, 0xa0, 0xc0, 0xff})
+
+		titleTexts := []string{"GAME OVER"}
+
+		for i, l := range titleTexts {
+			x := (ScreenWidth - len(l)*tileSize) / 24
+			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.White)
+		}
+
 	}
 
 }
