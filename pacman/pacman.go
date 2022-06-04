@@ -106,7 +106,7 @@ func (p *Pacman) isWall(dir direction) bool {
 	i = (p.y + increaseY) / tileSize
 	j = (p.x + increaseX) / tileSize
 
-	if p.game.scene.stage.tile_matrix[i][j] == '#' {
+	if p.game.scene.stage[i][j] == wall {
 		return true
 	}
 	return false

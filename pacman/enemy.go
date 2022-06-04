@@ -23,13 +23,13 @@ func (e *Enemy) Draw(screen *ebiten.Image, g *Game) {
 	options := &ebiten.DrawImageOptions{}
 	options.GeoM.Translate(float64(e.xPos), float64(e.yPos))
 	options.ColorM.Translate(e.color[0], e.color[1], e.color[2], e.color[3])
-	screen.DrawImage(ghost, options)
+	screen.DrawImage(ghostSprite, options)
 }
 
 func (e *Enemy) travel() {
 	for {
 		dir := direction(rand.Intn(4) + 1)
-		for i := rand.Intn(10) + 1; i > 0 && !e.isWall(dir); i-- {
+		for i := rand.Intn(5) + 1; i > 0 && !e.isWall(dir); i-- {
 			e.nextDir <- dir
 		}
 	}
@@ -90,7 +90,7 @@ func (e *Enemy) isWall(dir direction) bool {
 	j = (e.targetX + increaseX) / tileSize
 	e.Unlock()
 
-	if e.game.scene.stage.tile_matrix[i][j] == '#' {
+	if e.game.scene.stage[i][j] == wall {
 		return true
 	}
 

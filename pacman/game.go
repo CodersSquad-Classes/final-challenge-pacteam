@@ -18,10 +18,11 @@ import (
 type Mode int
 
 type Game struct {
-	scene   *scene
-	mode    Mode
-	enemies []*Enemy
-	player  *Pacman
+	scene      *scene
+	mode       Mode
+	enemies    []*Enemy
+	player     *Pacman
+	numEnemies int
 }
 
 const (
@@ -36,20 +37,21 @@ const (
 )
 
 var (
-	height     = 0
-	width      = 0
-	sizeH      = 0
-	sizeW      = 0
-	numEnemies = 8
-	gameFont   font.Face
+	height   = 0
+	width    = 0
+	sizeH    = 0
+	sizeW    = 0
+	gameFont font.Face
 )
 
-var wall *ebiten.Image
-var bg *ebiten.Image
-var dotSmall *ebiten.Image
-var dotBig *ebiten.Image
-var pacman *ebiten.Image
-var ghost *ebiten.Image
+var wallSprite *ebiten.Image
+var bgSprite *ebiten.Image
+var pillSprite *ebiten.Image
+var superPillSprite *ebiten.Image
+var pacmanSprite *ebiten.Image
+var ghostSprite *ebiten.Image
+
+var enemyColors = [][4]float64{{0, 209, 255, 0}, {30, 0, 210, 0}, {0, 0, 0, 0}, {0, 0, 131, 0}, {0, 0, 131, 0}, {2, 2, 0, 0}, {0, 10, 0, 0}, {0, 5, 5, 0}}
 
 func init() {
 	tt, err := opentype.Parse(fonts.PressStart2P_ttf)
@@ -76,40 +78,23 @@ func NewGame() *Game {
 	g := &Game{}
 
 	g.scene = createScene(nil)
+	g.numEnemies = len(g.scene.enemyPositions)
 
-	wall, _, _ = ebitenutil.NewImageFromFile("assets/tile.png")
-	bg, _, _ = ebitenutil.NewImageFromFile("assets/background.png")
-	dotSmall, _, _ = ebitenutil.NewImageFromFile("assets/dotSmall.png")
-	dotBig, _, _ = ebitenutil.NewImageFromFile("assets/dotBig.png")
-	pacman, _, _ = ebitenutil.NewImageFromFile("assets/pacman1.png")
-	ghost, _, _ = ebitenutil.NewImageFromFile("assets/ghostRed1.png")
+	wallSprite, _, _ = ebitenutil.NewImageFromFile("assets/tile.png")
+	bgSprite, _, _ = ebitenutil.NewImageFromFile("assets/background.png")
+	pillSprite, _, _ = ebitenutil.NewImageFromFile("assets/dotSmall.png")
+	superPillSprite, _, _ = ebitenutil.NewImageFromFile("assets/dotBig.png")
+	pacmanSprite, _, _ = ebitenutil.NewImageFromFile("assets/pacman1.png")
+	ghostSprite, _, _ = ebitenutil.NewImageFromFile("assets/ghostRed1.png")
 
-	height = len(g.scene.stage.tile_matrix)
-	width = len(g.scene.stage.tile_matrix[0])
+	height = len(g.scene.stage)
+	width = len(g.scene.stage[0])
 
 	sizeW = ((width*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 	sizeH = ((height*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 
-	colors := [8][4]float64{{0, 209, 255, 0}, {30, 0, 210, 0}, {0, 0, 0, 0}, {0, 0, 131, 0}, {0, 0, 131, 0}, {2, 2, 0, 0}, {0, 10, 0, 0}, {0, 5, 5, 0}}
-	enemiesCoord := [8][2]int{{384, 320}, {416, 320}, {448, 320}, {480, 320}, {384, 352}, {416, 352}, {448, 352}, {480, 352}}
-	en := make([]*Enemy, numEnemies)
-	for i := 0; i < numEnemies; i++ {
-		en[i] = &Enemy{
-			xPos:    enemiesCoord[i][0],
-			yPos:    enemiesCoord[i][1],
-			targetX: enemiesCoord[i][0],
-			targetY: enemiesCoord[i][1],
-			color:   colors[i],
-			dir:     none,
-			nextDir: make(chan direction),
-			game:    g,
-		}
-		go en[i].travel()
-	}
-	g.enemies = en
-
 	g.player = &Pacman{
-		sprite:  pacman,
+		sprite:  pacmanSprite,
 		x:       416,
 		y:       448,
 		targetX: 416,
@@ -123,16 +108,15 @@ func NewGame() *Game {
 }
 
 func initializeEnemies(g *Game) {
-	colors := [8][4]float64{{0, 209, 255, 0}, {30, 0, 210, 0}, {0, 0, 0, 0}, {0, 0, 131, 0}, {0, 0, 131, 0}, {2, 2, 0, 0}, {0, 10, 0, 0}, {0, 5, 5, 0}}
-	enemiesCoord := [8][2]int{{384, 320}, {416, 320}, {448, 320}, {480, 320}, {384, 352}, {416, 352}, {448, 352}, {480, 352}}
-	en := make([]*Enemy, numEnemies)
-	for i := 0; i < numEnemies; i++ {
+	g.enemies = make([]*Enemy, len(g.scene.enemyPositions))
+	en := make([]*Enemy, g.numEnemies)
+	for i := 0; i < g.numEnemies; i++ {
 		en[i] = &Enemy{
-			xPos:    enemiesCoord[i][0],
-			yPos:    enemiesCoord[i][1],
-			targetX: enemiesCoord[i][0],
-			targetY: enemiesCoord[i][1],
-			color:   colors[i],
+			xPos:    g.scene.enemyPositions[i][0],
+			yPos:    g.scene.enemyPositions[i][1],
+			targetX: g.scene.enemyPositions[i][0],
+			targetY: g.scene.enemyPositions[i][1],
+			color:   enemyColors[i%len(enemyColors)],
 			dir:     none,
 			nextDir: make(chan direction),
 			game:    g,
@@ -155,12 +139,12 @@ func (g *Game) Update() error {
 			g.mode = ModeGame
 		}
 
-		if inpututil.IsKeyJustPressed(ebiten.KeyW) && numEnemies < 8 {
-			numEnemies += 1
+		if inpututil.IsKeyJustPressed(ebiten.KeyW) && g.numEnemies < len(g.scene.enemyPositions) {
+			g.numEnemies += 1
 		}
 
-		if inpututil.IsKeyJustPressed(ebiten.KeyS) && numEnemies > 1 {
-			numEnemies -= 1
+		if inpututil.IsKeyJustPressed(ebiten.KeyS) && g.numEnemies > 1 {
+			g.numEnemies -= 1
 		}
 	case ModeGame:
 		for _, enemy := range g.enemies {
@@ -181,7 +165,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		titleTexts := []string{"PACMAN by Pacteam"}
 		texts := []string{"", "# of ENEMIES"}
 		instructionsText := []string{"", "", "(w = +1, s = -1, space = START):"}
-		enemiesText := []string{"", "", "", "", "", fmt.Sprint(numEnemies)}
+		enemiesText := []string{"", "", "", "", "", fmt.Sprint(g.numEnemies)}
 
 		for i, l := range titleTexts {
 			x := (ScreenWidth - len(l)*tileSize) / 24
@@ -213,7 +197,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				x := float64(j * tileSize)
 
 				options.GeoM.Translate(x, y)
-				screen.DrawImage(bg, options)
+				screen.DrawImage(bgSprite, options)
 			}
 		}
 
@@ -227,16 +211,16 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 				options.GeoM.Translate(x, y)
 
-				if string(g.scene.stage.tile_matrix[i][j]) == "#" {
-					screen.DrawImage(wall, options)
+				if g.scene.stage[i][j] == wall {
+					screen.DrawImage(wallSprite, options)
 				}
 
-				if string(g.scene.stage.tile_matrix[i][j]) == "." {
-					screen.DrawImage(dotSmall, options)
+				if g.scene.stage[i][j] == pill {
+					screen.DrawImage(pillSprite, options)
 				}
 
-				if string(g.scene.stage.tile_matrix[i][j]) == "X" {
-					screen.DrawImage(dotBig, options)
+				if g.scene.stage[i][j] == superPill {
+					screen.DrawImage(superPillSprite, options)
 				}
 			}
 		}
