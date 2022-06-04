@@ -126,14 +126,17 @@ func initializeEnemies(g *Game) {
 	en := make([]*Enemy, g.numEnemies)
 	for i := 0; i < g.numEnemies; i++ {
 		en[i] = &Enemy{
-			xPos:    g.scene.enemyPositions[i][0],
-			yPos:    g.scene.enemyPositions[i][1],
-			targetX: g.scene.enemyPositions[i][0],
-			targetY: g.scene.enemyPositions[i][1],
-			color:   enemyColors[i%len(enemyColors)],
-			dir:     none,
-			nextDir: make(chan direction),
-			game:    g,
+			x:        g.scene.enemyPositions[i][0],
+			y:        g.scene.enemyPositions[i][1],
+			initialX: g.scene.enemyPositions[i][0],
+			initialY: g.scene.enemyPositions[i][1],
+			targetX:  g.scene.enemyPositions[i][0],
+			targetY:  g.scene.enemyPositions[i][1],
+			color:    enemyColors[i%len(enemyColors)],
+			dir:      none,
+			nextDir:  make(chan direction),
+			stop:     make(chan struct{}),
+			game:     g,
 		}
 		go en[i].travel()
 	}
@@ -162,22 +165,36 @@ func (g *Game) Update() error {
 		}
 	case ModeGame:
 		for _, enemy := range g.enemies {
-			if enemy.xPos/32 == g.player.x/32 && enemy.yPos/32 == g.player.y/32 {
-				g.player.death()
-				g.lives--
-			}
+
 			enemy.move()
+
+			if enemy.x/32 == g.player.x/32 && enemy.y/32 == g.player.y/32 {
+				g.playerDie()
+				break
+			}
+
 		}
 
 		g.player.getInput()
 		g.player.move()
+	case ModeGameOver:
+
+		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+			g.mode = ModeMenu
+			g.score = 0
+			g.lives = 3
+			g.scene.reset()
+			g.player.reset()
+		}
+
 	}
 
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	if g.mode == ModeMenu {
+	switch g.mode {
+	case ModeMenu:
 		screen.Fill(color.Gray{0x7f})
 
 		titleTexts := []string{"PACMAN by Pacteam"}
@@ -204,7 +221,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			x := (ScreenWidth - len(l)*tileSize) / 24
 			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.Black)
 		}
-	} else if g.mode == ModeGame {
+	case ModeGame:
 		// drawing background image
 		for i := 0; i < sizeH/tileSize; i++ {
 			y := float64(i * tileSize)
@@ -250,9 +267,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 		g.player.draw(screen)
 
-		//draw score
+		//draw score and lives
 		text.Draw(screen, fmt.Sprintf("Score: %v", g.score), scoreFont, 8, 24, color.White)
-	} else {
+		text.Draw(screen, fmt.Sprintf("lives: %v", g.lives), scoreFont, 8, ScreenHeight-8, color.White)
+	case ModeGameOver:
 		// we're in the game over screen
 		screen.Fill(color.Black)
 
@@ -267,6 +285,43 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 }
 
-func (g *Game) updateScore(inc int) {
-	g.score += inc
+func (g *Game) checkPill(i, j int) {
+	switch g.scene.stage[i][j] {
+	case pill:
+		g.scene.stage[i][j] = empty
+		g.score += 10
+	case superPill:
+		g.scene.stage[i][j] = empty
+		g.score += 50
+	default:
+		return
+	}
+
+	g.scene.remainingPills--
+	if g.scene.remainingPills == 0 {
+		g.player.reset()
+		for _, enemy := range g.enemies {
+			enemy.reset()
+		}
+		g.scene.reset()
+
+	}
+}
+
+func (g *Game) playerDie() {
+	g.lives--
+
+	if g.lives == 0 {
+		for _, enemy := range g.enemies {
+			enemy.stopMovementAlgorithm()
+		}
+		g.mode = ModeGameOver
+
+	} else {
+		g.player.reset()
+		for _, enemy := range g.enemies {
+			enemy.reset()
+		}
+	}
+
 }
