@@ -23,6 +23,7 @@ type Game struct {
 	enemies    []*Enemy
 	player     *Pacman
 	numEnemies int
+	score      int
 }
 
 const (
@@ -37,11 +38,12 @@ const (
 )
 
 var (
-	height   = 0
-	width    = 0
-	sizeH    = 0
-	sizeW    = 0
-	gameFont font.Face
+	height    = 0
+	width     = 0
+	sizeH     = 0
+	sizeW     = 0
+	gameFont  font.Face
+	scoreFont font.Face
 )
 
 var wallSprite *ebiten.Image
@@ -67,6 +69,11 @@ func init() {
 		Hinting: font.HintingFull,
 	})
 
+	scoreFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+		Size:    float64(tileSize / 2),
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -95,10 +102,10 @@ func NewGame() *Game {
 
 	g.player = &Pacman{
 		sprite:  pacmanSprite,
-		x:       416,
-		y:       448,
-		targetX: 416,
-		targetY: 448,
+		x:       g.scene.pacmanInitialX,
+		y:       g.scene.pacmanInitialY,
+		targetX: g.scene.pacmanInitialX,
+		targetY: g.scene.pacmanInitialY,
 		dir:     right,
 		nextDir: right,
 		game:    g,
@@ -231,6 +238,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 
 		g.player.draw(screen)
+
+		//draw score
+		text.Draw(screen, fmt.Sprintf("Score: %v", g.score), scoreFont, 8, 24, color.White)
 	} else {
 		// we're in the game over screen
 		screen.Fill(color.Black)
@@ -244,4 +254,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	}
 
+}
+
+func (g *Game) updateScore(inc int) {
+	g.score += inc
 }
