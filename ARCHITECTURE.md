@@ -36,3 +36,6 @@ ACTIVITY DIAGRAM
 ----------------------
 ![Activity](diagrams/activityDiagram.png)
 
+SECUENTIAL DIAGRAM
+----------------------
+![Activity](diagrams/secuentialDia.png)
