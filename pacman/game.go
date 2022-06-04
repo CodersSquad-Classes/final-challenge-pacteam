@@ -24,6 +24,7 @@ type Game struct {
 	player     *Pacman
 	numEnemies int
 	score      int
+	lives      int
 }
 
 const (
@@ -85,6 +86,7 @@ func NewGame() *Game {
 	g := &Game{}
 
 	g.scene = createScene(nil)
+
 	g.numEnemies = len(g.scene.enemyPositions)
 
 	wallSprite, _, _ = ebitenutil.NewImageFromFile("assets/tile.png")
@@ -93,6 +95,9 @@ func NewGame() *Game {
 	superPillSprite, _, _ = ebitenutil.NewImageFromFile("assets/dotBig.png")
 	pacmanSprite, _, _ = ebitenutil.NewImageFromFile("assets/pacman1.png")
 	ghostSprite, _, _ = ebitenutil.NewImageFromFile("assets/ghostRed1.png")
+
+	g.lives = 3
+	g.score = 0
 
 	height = len(g.scene.stage)
 	width = len(g.scene.stage[0])
@@ -104,6 +109,8 @@ func NewGame() *Game {
 		sprite:  pacmanSprite,
 		x:       g.scene.pacmanInitialX,
 		y:       g.scene.pacmanInitialY,
+		initX:   g.scene.pacmanInitialX,
+		initY:   g.scene.pacmanInitialY,
 		targetX: g.scene.pacmanInitialX,
 		targetY: g.scene.pacmanInitialY,
 		dir:     right,
@@ -155,6 +162,10 @@ func (g *Game) Update() error {
 		}
 	case ModeGame:
 		for _, enemy := range g.enemies {
+			if enemy.xPos/32 == g.player.x/32 && enemy.yPos/32 == g.player.y/32 {
+				g.player.death()
+				g.lives--
+			}
 			enemy.move()
 		}
 
