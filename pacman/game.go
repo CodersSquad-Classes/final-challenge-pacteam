@@ -18,6 +18,8 @@ import (
 type Mode int
 
 type Game struct {
+	lives   int
+	score   int
 	scene   *scene
 	mode    Mode
 	enemies []*Enemy
@@ -76,7 +78,8 @@ func NewGame() *Game {
 	g := &Game{}
 
 	g.scene = createScene(nil)
-
+	g.lives = 3
+	g.score = 0
 	wall, _, _ = ebitenutil.NewImageFromFile("assets/tile.png")
 	bg, _, _ = ebitenutil.NewImageFromFile("assets/background.png")
 	dotSmall, _, _ = ebitenutil.NewImageFromFile("assets/dotSmall.png")
@@ -112,6 +115,8 @@ func NewGame() *Game {
 		sprite:  pacman,
 		x:       416,
 		y:       448,
+		initX:   416,
+		initY:   448,
 		targetX: 416,
 		targetY: 448,
 		dir:     right,
@@ -144,11 +149,11 @@ func initializeEnemies(g *Game) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return ScreenWidth, ScreenHeight
+	return ScreenWidth, ScreenHeight + 50
 }
 
 func (g *Game) Update() error {
-	switch g.mode {
+  switch g.mode {
 	case ModeMenu:
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 			initializeEnemies(g)
@@ -164,7 +169,11 @@ func (g *Game) Update() error {
 		}
 	case ModeGame:
 		for _, enemy := range g.enemies {
-			enemy.move()
+			if enemy.xPos/32 == g.player.x/32 && enemy.yPos/32 == g.player.y/32 {
+			g.player.death()
+			g.lives--
+		}
+      enemy.move()
 		}
 
 		g.player.getInput()

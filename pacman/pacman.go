@@ -18,6 +18,7 @@ const (
 )
 
 type Pacman struct {
+	initX, initY     int
 	sprite           *ebiten.Image
 	dir, nextDir     direction
 	x, y             int
@@ -134,4 +135,12 @@ func (p *Pacman) getInput() {
 			duration = inpututil.KeyPressDuration(key)
 		}
 	}
+}
+
+func (p *Pacman) death() {
+	p.x = p.initX
+	p.y = p.initY
+	p.targetX = p.initX
+	p.targetY = p.initY
+	p.dir = right
 }
