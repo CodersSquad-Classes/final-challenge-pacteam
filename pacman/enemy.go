@@ -8,29 +8,43 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+var weakColor = []float64{-.50, .2, .90, 0}
+
 type Enemy struct {
 	sync.Mutex
-	dir              direction
-	nextDir          chan direction
-	targetX, targetY int
-	game             *Game
-	xPos             int
-	yPos             int
-	color            [4]float64
+	dir                direction
+	nextDir            chan direction
+	stop               chan struct{}
+	targetX, targetY   int
+	x, y               int
+	initialX, initialY int
+	game               *Game
+	color              [4]float64
 }
 
-func (e *Enemy) Draw(screen *ebiten.Image, g *Game) {
+func (e *Enemy) Draw(screen *ebiten.Image, weak bool) {
+	var col []float64
+	if weak {
+		col = weakColor
+	} else {
+		col = e.color[:]
+	}
 	options := &ebiten.DrawImageOptions{}
-	options.GeoM.Translate(float64(e.xPos), float64(e.yPos))
-	options.ColorM.Translate(e.color[0], e.color[1], e.color[2], e.color[3])
-	screen.DrawImage(ghost, options)
+	options.GeoM.Translate(float64(e.x), float64(e.y))
+	options.ColorM.Translate(col[0], col[1], col[2], col[3])
+	screen.DrawImage(ghostSprite, options)
 }
 
 func (e *Enemy) travel() {
 	for {
 		dir := direction(rand.Intn(4) + 1)
-		for i := rand.Intn(10) + 1; i > 0 && !e.isWall(dir); i-- {
-			e.nextDir <- dir
+		for i := rand.Intn(5) + 1; i > 0 && !e.isWall(dir); i-- {
+			select {
+
+			case e.nextDir <- dir:
+			case <-e.stop:
+				return
+			}
 		}
 	}
 
@@ -54,18 +68,18 @@ func (e *Enemy) updateTarget() {
 }
 
 func (e *Enemy) move() {
-	if e.xPos == e.targetX && e.yPos == e.targetY {
+	if e.x == e.targetX && e.y == e.targetY {
 		e.updateTarget()
 	}
 	switch e.dir {
 	case up:
-		e.yPos--
+		e.y--
 	case down:
-		e.yPos++
+		e.y++
 	case left:
-		e.xPos--
+		e.x--
 	case right:
-		e.xPos++
+		e.x++
 	}
 }
 
@@ -90,9 +104,23 @@ func (e *Enemy) isWall(dir direction) bool {
 	j = (e.targetX + increaseX) / tileSize
 	e.Unlock()
 
-	if e.game.scene.stage.tile_matrix[i][j] == '#' {
+	if e.game.scene.stage[i][j] == wall {
 		return true
 	}
 
 	return false
+}
+
+func (e *Enemy) reset() {
+	e.stopMovementAlgorithm()
+	e.x = e.initialX
+	e.y = e.initialY
+	e.targetX = e.initialX
+	e.targetY = e.initialY
+	e.dir = none
+	go e.travel()
+}
+
+func (e *Enemy) stopMovementAlgorithm() {
+	e.stop <- struct{}{}
 }

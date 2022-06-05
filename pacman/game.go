@@ -18,12 +18,14 @@ import (
 type Mode int
 
 type Game struct {
-	lives   int
-	score   int
-	scene   *scene
-	mode    Mode
-	enemies []*Enemy
-	player  *Pacman
+	scene         *scene
+	mode          Mode
+	enemies       []*Enemy
+	player        *Pacman
+	numEnemies    int
+	score         int
+	lives         int
+	isSuperPilled bool
 }
 
 const (
@@ -38,20 +40,22 @@ const (
 )
 
 var (
-	height     = 0
-	width      = 0
-	sizeH      = 0
-	sizeW      = 0
-	numEnemies = 8
-	gameFont   font.Face
+	height    = 0
+	width     = 0
+	sizeH     = 0
+	sizeW     = 0
+	gameFont  font.Face
+	scoreFont font.Face
 )
 
-var wall *ebiten.Image
-var bg *ebiten.Image
-var dotSmall *ebiten.Image
-var dotBig *ebiten.Image
-var pacman *ebiten.Image
-var ghost *ebiten.Image
+var wallSprite *ebiten.Image
+var bgSprite *ebiten.Image
+var pillSprite *ebiten.Image
+var superPillSprite *ebiten.Image
+var pacmanSprite *ebiten.Image
+var ghostSprite *ebiten.Image
+
+var enemyColors = [][4]float64{{-.60, .40, .0, 0}, {.5, .3, -.1, 0}, {.5, 0, 0, 0}, {0, -.1, .8, 0}, {.6, 0, 1, 0}, {-.7, .4, .8, 0}, {-.70, .4, .6, 0}}
 
 func init() {
 	tt, err := opentype.Parse(fonts.PressStart2P_ttf)
@@ -67,6 +71,11 @@ func init() {
 		Hinting: font.HintingFull,
 	})
 
+	scoreFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+		Size:    float64(tileSize / 2),
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -78,47 +87,33 @@ func NewGame() *Game {
 	g := &Game{}
 
 	g.scene = createScene(nil)
+
+	g.numEnemies = len(g.scene.enemyPositions)
+
+	wallSprite, _, _ = ebitenutil.NewImageFromFile("assets/tile.png")
+	bgSprite, _, _ = ebitenutil.NewImageFromFile("assets/background.png")
+	pillSprite, _, _ = ebitenutil.NewImageFromFile("assets/dotSmall.png")
+	superPillSprite, _, _ = ebitenutil.NewImageFromFile("assets/dotBig.png")
+	pacmanSprite, _, _ = ebitenutil.NewImageFromFile("assets/pacman1.png")
+	ghostSprite, _, _ = ebitenutil.NewImageFromFile("assets/ghostRed1.png")
+
 	g.lives = 3
 	g.score = 0
-	wall, _, _ = ebitenutil.NewImageFromFile("assets/tile.png")
-	bg, _, _ = ebitenutil.NewImageFromFile("assets/background.png")
-	dotSmall, _, _ = ebitenutil.NewImageFromFile("assets/dotSmall.png")
-	dotBig, _, _ = ebitenutil.NewImageFromFile("assets/dotBig.png")
-	pacman, _, _ = ebitenutil.NewImageFromFile("assets/pacman1.png")
-	ghost, _, _ = ebitenutil.NewImageFromFile("assets/ghostRed1.png")
 
-	height = len(g.scene.stage.tile_matrix)
-	width = len(g.scene.stage.tile_matrix[0])
+	height = len(g.scene.stage)
+	width = len(g.scene.stage[0])
 
 	sizeW = ((width*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 	sizeH = ((height*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 
-	colors := [8][4]float64{{0, 209, 255, 0}, {30, 0, 210, 0}, {0, 0, 0, 0}, {0, 0, 131, 0}, {0, 0, 131, 0}, {2, 2, 0, 0}, {0, 10, 0, 0}, {0, 5, 5, 0}}
-	enemiesCoord := [8][2]int{{384, 320}, {416, 320}, {448, 320}, {480, 320}, {384, 352}, {416, 352}, {448, 352}, {480, 352}}
-	en := make([]*Enemy, numEnemies)
-	for i := 0; i < numEnemies; i++ {
-		en[i] = &Enemy{
-			xPos:    enemiesCoord[i][0],
-			yPos:    enemiesCoord[i][1],
-			targetX: enemiesCoord[i][0],
-			targetY: enemiesCoord[i][1],
-			color:   colors[i],
-			dir:     none,
-			nextDir: make(chan direction),
-			game:    g,
-		}
-		go en[i].travel()
-	}
-	g.enemies = en
-
 	g.player = &Pacman{
-		sprite:  pacman,
-		x:       416,
-		y:       448,
-		initX:   416,
-		initY:   448,
-		targetX: 416,
-		targetY: 448,
+		sprite:  pacmanSprite,
+		x:       g.scene.pacmanInitialX,
+		y:       g.scene.pacmanInitialY,
+		initX:   g.scene.pacmanInitialX,
+		initY:   g.scene.pacmanInitialY,
+		targetX: g.scene.pacmanInitialX,
+		targetY: g.scene.pacmanInitialY,
 		dir:     right,
 		nextDir: right,
 		game:    g,
@@ -128,19 +123,21 @@ func NewGame() *Game {
 }
 
 func initializeEnemies(g *Game) {
-	colors := [8][4]float64{{0, 209, 255, 0}, {30, 0, 210, 0}, {0, 0, 0, 0}, {0, 0, 131, 0}, {0, 0, 131, 0}, {2, 2, 0, 0}, {0, 10, 0, 0}, {0, 5, 5, 0}}
-	enemiesCoord := [8][2]int{{384, 320}, {416, 320}, {448, 320}, {480, 320}, {384, 352}, {416, 352}, {448, 352}, {480, 352}}
-	en := make([]*Enemy, numEnemies)
-	for i := 0; i < numEnemies; i++ {
+	g.enemies = make([]*Enemy, len(g.scene.enemyPositions))
+	en := make([]*Enemy, g.numEnemies)
+	for i := 0; i < g.numEnemies; i++ {
 		en[i] = &Enemy{
-			xPos:    enemiesCoord[i][0],
-			yPos:    enemiesCoord[i][1],
-			targetX: enemiesCoord[i][0],
-			targetY: enemiesCoord[i][1],
-			color:   colors[i],
-			dir:     none,
-			nextDir: make(chan direction),
-			game:    g,
+			x:        g.scene.enemyPositions[i][0],
+			y:        g.scene.enemyPositions[i][1],
+			initialX: g.scene.enemyPositions[i][0],
+			initialY: g.scene.enemyPositions[i][1],
+			targetX:  g.scene.enemyPositions[i][0],
+			targetY:  g.scene.enemyPositions[i][1],
+			color:    enemyColors[i%len(enemyColors)],
+			dir:      none,
+			nextDir:  make(chan direction),
+			stop:     make(chan struct{}),
+			game:     g,
 		}
 		go en[i].travel()
 	}
@@ -149,48 +146,67 @@ func initializeEnemies(g *Game) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return ScreenWidth, ScreenHeight + 50
+	return ScreenWidth, ScreenHeight
 }
 
 func (g *Game) Update() error {
-  switch g.mode {
+	switch g.mode {
 	case ModeMenu:
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 			initializeEnemies(g)
 			g.mode = ModeGame
 		}
 
-		if inpututil.IsKeyJustPressed(ebiten.KeyW) && numEnemies < 8 {
-			numEnemies += 1
+		if inpututil.IsKeyJustPressed(ebiten.KeyW) && g.numEnemies < len(g.scene.enemyPositions) {
+			g.numEnemies += 1
 		}
 
-		if inpututil.IsKeyJustPressed(ebiten.KeyS) && numEnemies > 1 {
-			numEnemies -= 1
+		if inpututil.IsKeyJustPressed(ebiten.KeyS) && g.numEnemies > 1 {
+			g.numEnemies -= 1
 		}
 	case ModeGame:
 		for _, enemy := range g.enemies {
-			if enemy.xPos/32 == g.player.x/32 && enemy.yPos/32 == g.player.y/32 {
-			g.player.death()
-			g.lives--
-		}
-      enemy.move()
+
+			enemy.move()
+
+			if enemy.x/32 == g.player.x/32 && enemy.y/32 == g.player.y/32 {
+				if g.isSuperPilled {
+					enemy.reset()
+					g.score += 200
+				} else {
+					g.playerDies()
+					break
+				}
+			}
+
 		}
 
 		g.player.getInput()
 		g.player.move()
+	case ModeGameOver:
+
+		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+			g.mode = ModeMenu
+			g.score = 0
+			g.lives = 3
+			g.scene.reset()
+			g.player.reset()
+		}
+
 	}
 
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	if g.mode == ModeMenu {
+	switch g.mode {
+	case ModeMenu:
 		screen.Fill(color.Gray{0x7f})
 
 		titleTexts := []string{"PACMAN by Pacteam"}
 		texts := []string{"", "# of ENEMIES"}
 		instructionsText := []string{"", "", "(w = +1, s = -1, space = START):"}
-		enemiesText := []string{"", "", "", "", "", fmt.Sprint(numEnemies)}
+		enemiesText := []string{"", "", "", "", "", fmt.Sprint(g.numEnemies)}
 
 		for i, l := range titleTexts {
 			x := (ScreenWidth - len(l)*tileSize) / 24
@@ -211,7 +227,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			x := (ScreenWidth - len(l)*tileSize) / 24
 			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.Black)
 		}
-	} else if g.mode == ModeGame {
+	case ModeGame:
 		// drawing background image
 		for i := 0; i < sizeH/tileSize; i++ {
 			y := float64(i * tileSize)
@@ -222,7 +238,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				x := float64(j * tileSize)
 
 				options.GeoM.Translate(x, y)
-				screen.DrawImage(bg, options)
+				screen.DrawImage(bgSprite, options)
 			}
 		}
 
@@ -236,27 +252,31 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 				options.GeoM.Translate(x, y)
 
-				if string(g.scene.stage.tile_matrix[i][j]) == "#" {
-					screen.DrawImage(wall, options)
+				if g.scene.stage[i][j] == wall {
+					screen.DrawImage(wallSprite, options)
 				}
 
-				if string(g.scene.stage.tile_matrix[i][j]) == "." {
-					screen.DrawImage(dotSmall, options)
+				if g.scene.stage[i][j] == pill {
+					screen.DrawImage(pillSprite, options)
 				}
 
-				if string(g.scene.stage.tile_matrix[i][j]) == "X" {
-					screen.DrawImage(dotBig, options)
+				if g.scene.stage[i][j] == superPill {
+					screen.DrawImage(superPillSprite, options)
 				}
 			}
 		}
 
 		// drawing the enemies
 		for _, e := range g.enemies {
-			e.Draw(screen, g)
+			e.Draw(screen, g.isSuperPilled)
 		}
 
 		g.player.draw(screen)
-	} else {
+
+		//draw score and lives
+		text.Draw(screen, fmt.Sprintf("Score: %v", g.score), scoreFont, 8, 24, color.White)
+		text.Draw(screen, fmt.Sprintf("lives: %v", g.lives), scoreFont, 8, ScreenHeight-8, color.White)
+	case ModeGameOver:
 		// we're in the game over screen
 		screen.Fill(color.Black)
 
@@ -268,5 +288,52 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 
 	}
+
+}
+
+func (g *Game) checkPill(i, j int) {
+	switch g.scene.stage[i][j] {
+	case pill:
+		g.scene.stage[i][j] = empty
+		g.score += 10
+	case superPill:
+		g.scene.stage[i][j] = empty
+		g.score += 50
+		go func() {
+			g.isSuperPilled = true
+			time.Sleep(20 * time.Second)
+			g.isSuperPilled = false
+		}()
+	default:
+		return
+	}
+
+	g.scene.remainingPills--
+	if g.scene.remainingPills == 0 {
+		g.player.reset()
+		for _, enemy := range g.enemies {
+			enemy.reset()
+		}
+		g.scene.reset()
+
+	}
+}
+
+func (g *Game) playerDies() {
+	g.lives--
+
+	if g.lives == 0 {
+		for _, enemy := range g.enemies {
+			enemy.stopMovementAlgorithm()
+		}
+		g.mode = ModeGameOver
+
+	} else {
+		for _, enemy := range g.enemies {
+			enemy.reset()
+		}
+	}
+	g.player.reset()
+	g.isSuperPilled = false
 
 }

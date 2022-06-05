@@ -36,6 +36,9 @@ func (p *Pacman) draw(screen *ebiten.Image) {
 
 func (p *Pacman) move() {
 	if p.x == p.targetX && p.y == p.targetY {
+		i := p.y / tileSize
+		j := p.x / tileSize
+		p.game.checkPill(i, j)
 		p.nextTarget()
 	}
 	p.checkOpposites()
@@ -107,7 +110,7 @@ func (p *Pacman) isWall(dir direction) bool {
 	i = (p.y + increaseY) / tileSize
 	j = (p.x + increaseX) / tileSize
 
-	if p.game.scene.stage.tile_matrix[i][j] == '#' {
+	if p.game.scene.stage[i][j] == wall {
 		return true
 	}
 	return false
@@ -137,7 +140,7 @@ func (p *Pacman) getInput() {
 	}
 }
 
-func (p *Pacman) death() {
+func (p *Pacman) reset() {
 	p.x = p.initX
 	p.y = p.initY
 	p.targetX = p.initX
