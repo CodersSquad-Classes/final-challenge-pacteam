@@ -18,14 +18,14 @@ import (
 type Mode int
 
 type Game struct {
-	scene            *scene
-	mode             Mode
-	enemies          []*Enemy
-	player           *Pacman
-	numEnemies       int
-	score            int
-	lives            int
-	superPillEnabled bool
+	scene         *scene
+	mode          Mode
+	enemies       []*Enemy
+	player        *Pacman
+	numEnemies    int
+	score         int
+	lives         int
+	isSuperPilled bool
 }
 
 const (
@@ -170,11 +170,11 @@ func (g *Game) Update() error {
 			enemy.move()
 
 			if enemy.x/32 == g.player.x/32 && enemy.y/32 == g.player.y/32 {
-				if g.superPillEnabled {
+				if g.isSuperPilled {
 					enemy.reset()
 					g.score += 200
 				} else {
-					g.playerDie()
+					g.playerDies()
 					break
 				}
 			}
@@ -268,7 +268,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 		// drawing the enemies
 		for _, e := range g.enemies {
-			e.Draw(screen, g.superPillEnabled)
+			e.Draw(screen, g.isSuperPilled)
 		}
 
 		g.player.draw(screen)
@@ -300,9 +300,9 @@ func (g *Game) checkPill(i, j int) {
 		g.scene.stage[i][j] = empty
 		g.score += 50
 		go func() {
-			g.superPillEnabled = true
+			g.isSuperPilled = true
 			time.Sleep(20 * time.Second)
-			g.superPillEnabled = false
+			g.isSuperPilled = false
 		}()
 	default:
 		return
@@ -319,7 +319,7 @@ func (g *Game) checkPill(i, j int) {
 	}
 }
 
-func (g *Game) playerDie() {
+func (g *Game) playerDies() {
 	g.lives--
 
 	if g.lives == 0 {
@@ -334,6 +334,6 @@ func (g *Game) playerDie() {
 		}
 	}
 	g.player.reset()
-	g.superPillEnabled = false
+	g.isSuperPilled = false
 
 }
