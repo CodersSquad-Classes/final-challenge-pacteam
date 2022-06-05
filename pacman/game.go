@@ -18,13 +18,14 @@ import (
 type Mode int
 
 type Game struct {
-	scene      *scene
-	mode       Mode
-	enemies    []*Enemy
-	player     *Pacman
-	numEnemies int
-	score      int
-	lives      int
+	scene            *scene
+	mode             Mode
+	enemies          []*Enemy
+	player           *Pacman
+	numEnemies       int
+	score            int
+	lives            int
+	superPillEnabled bool
 }
 
 const (
@@ -54,7 +55,7 @@ var superPillSprite *ebiten.Image
 var pacmanSprite *ebiten.Image
 var ghostSprite *ebiten.Image
 
-var enemyColors = [][4]float64{{0, 209, 255, 0}, {30, 0, 210, 0}, {0, 0, 0, 0}, {0, 0, 131, 0}, {0, 0, 131, 0}, {2, 2, 0, 0}, {0, 10, 0, 0}, {0, 5, 5, 0}}
+var enemyColors = [][4]float64{{-.60, .40, .0, 0}, {.5, .3, -.1, 0}, {.5, 0, 0, 0}, {0, -.1, .8, 0}, {.6, 0, 1, 0}, {-.7, .4, .8, 0}, {-.70, .4, .6, 0}}
 
 func init() {
 	tt, err := opentype.Parse(fonts.PressStart2P_ttf)
@@ -169,8 +170,13 @@ func (g *Game) Update() error {
 			enemy.move()
 
 			if enemy.x/32 == g.player.x/32 && enemy.y/32 == g.player.y/32 {
-				g.playerDie()
-				break
+				if g.superPillEnabled {
+					enemy.reset()
+					g.score += 200
+				} else {
+					g.playerDie()
+					break
+				}
 			}
 
 		}
@@ -262,7 +268,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 		// drawing the enemies
 		for _, e := range g.enemies {
-			e.Draw(screen, g)
+			e.Draw(screen, g.superPillEnabled)
 		}
 
 		g.player.draw(screen)
@@ -293,6 +299,11 @@ func (g *Game) checkPill(i, j int) {
 	case superPill:
 		g.scene.stage[i][j] = empty
 		g.score += 50
+		go func() {
+			g.superPillEnabled = true
+			time.Sleep(20 * time.Second)
+			g.superPillEnabled = false
+		}()
 	default:
 		return
 	}
@@ -318,10 +329,11 @@ func (g *Game) playerDie() {
 		g.mode = ModeGameOver
 
 	} else {
-		g.player.reset()
 		for _, enemy := range g.enemies {
 			enemy.reset()
 		}
 	}
+	g.player.reset()
+	g.superPillEnabled = false
 
 }

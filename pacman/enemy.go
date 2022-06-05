@@ -8,6 +8,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+var weakColor = []float64{-.50, .2, .90, 0}
+
 type Enemy struct {
 	sync.Mutex
 	dir                direction
@@ -20,10 +22,16 @@ type Enemy struct {
 	color              [4]float64
 }
 
-func (e *Enemy) Draw(screen *ebiten.Image, g *Game) {
+func (e *Enemy) Draw(screen *ebiten.Image, weak bool) {
+	var col []float64
+	if weak {
+		col = weakColor
+	} else {
+		col = e.color[:]
+	}
 	options := &ebiten.DrawImageOptions{}
 	options.GeoM.Translate(float64(e.x), float64(e.y))
-	options.ColorM.Translate(e.color[0], e.color[1], e.color[2], e.color[3])
+	options.ColorM.Translate(col[0], col[1], col[2], col[3])
 	screen.DrawImage(ghostSprite, options)
 }
 
