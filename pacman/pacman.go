@@ -11,27 +11,33 @@ type direction int
 
 const (
 	none direction = iota
-	up
-	down
 	right
+	down
 	left
+	up
 )
 
 type Pacman struct {
-	initX, initY     int
-	sprite           *ebiten.Image
-	dir, nextDir     direction
-	x, y             int
-	targetX, targetY int
-	game             *Game
+	initX, initY          int
+	sprite                [][]*ebiten.Image
+	dir, nextDir, lastDir direction
+	x, y                  int
+	targetX, targetY      int
+	game                  *Game
 }
 
 func (p *Pacman) draw(screen *ebiten.Image) {
 
 	op := &ebiten.DrawImageOptions{}
-	// op.GeoM.Scale(2, 2)
+	var spriteDirection int
+	switch p.dir {
+	case none:
+		spriteDirection = int(p.lastDir) - 1
+	default:
+		spriteDirection = int(p.dir) - 1
+	}
 	op.GeoM.Translate(float64(p.x), float64(p.y))
-	screen.DrawImage(p.sprite, op)
+	screen.DrawImage(p.sprite[spriteDirection][(p.x+p.y)/5%2], op)
 }
 
 func (p *Pacman) move() {
@@ -76,6 +82,7 @@ func (p *Pacman) nextTarget() {
 	if p.nextDir != none && !p.isWall(p.nextDir) {
 		p.dir = p.nextDir
 	} else if p.isWall(p.dir) {
+		p.lastDir = p.dir
 		p.dir = none
 	}
 

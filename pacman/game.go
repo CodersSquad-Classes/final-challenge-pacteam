@@ -52,7 +52,7 @@ var wallSprite *ebiten.Image
 var bgSprite *ebiten.Image
 var pillSprite *ebiten.Image
 var superPillSprite *ebiten.Image
-var pacmanSprite *ebiten.Image
+var pacmanSprites [][]*ebiten.Image
 var ghostSprite *ebiten.Image
 
 var enemyColors = [][4]float64{{-.60, .40, .0, 0}, {.5, .3, -.1, 0}, {.5, 0, 0, 0}, {0, -.1, .8, 0}, {.6, 0, 1, 0}, {-.7, .4, .8, 0}, {-.70, .4, .6, 0}}
@@ -94,9 +94,18 @@ func NewGame() *Game {
 	bgSprite, _, _ = ebitenutil.NewImageFromFile("assets/background.png")
 	pillSprite, _, _ = ebitenutil.NewImageFromFile("assets/dotSmall.png")
 	superPillSprite, _, _ = ebitenutil.NewImageFromFile("assets/dotBig.png")
-	pacmanSprite, _, _ = ebitenutil.NewImageFromFile("assets/pacman1.png")
 	ghostSprite, _, _ = ebitenutil.NewImageFromFile("assets/ghostRed1.png")
 
+	pacmanSpriteR1, _, _ := ebitenutil.NewImageFromFile("assets/pacman1.png")
+	pacmanSpriteR2, _, _ := ebitenutil.NewImageFromFile("assets/pacman2.png")
+	pacmanSpriteD1, _, _ := ebitenutil.NewImageFromFile("assets/pacman3.png")
+	pacmanSpriteD2, _, _ := ebitenutil.NewImageFromFile("assets/pacman4.png")
+	pacmanSpriteL1, _, _ := ebitenutil.NewImageFromFile("assets/pacman5.png")
+	pacmanSpriteL2, _, _ := ebitenutil.NewImageFromFile("assets/pacman6.png")
+	pacmanSpriteU1, _, _ := ebitenutil.NewImageFromFile("assets/pacman7.png")
+	pacmanSpriteU2, _, _ := ebitenutil.NewImageFromFile("assets/pacman8.png")
+
+	pacmanSprites = [][]*ebiten.Image{{pacmanSpriteR1, pacmanSpriteR2}, {pacmanSpriteD1, pacmanSpriteD2}, {pacmanSpriteL1, pacmanSpriteL2}, {pacmanSpriteU1, pacmanSpriteU2}}
 	g.lives = 3
 	g.score = 0
 
@@ -107,7 +116,7 @@ func NewGame() *Game {
 	sizeH = ((height*tileSize)/backgroundImageSize + 1) * backgroundImageSize
 
 	g.player = &Pacman{
-		sprite:  pacmanSprite,
+		sprite:  pacmanSprites,
 		x:       g.scene.pacmanInitialX,
 		y:       g.scene.pacmanInitialY,
 		initX:   g.scene.pacmanInitialX,
