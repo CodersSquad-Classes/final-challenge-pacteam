@@ -193,7 +193,6 @@ func (g *Game) Update() error {
 		g.player.getInput()
 		g.player.move()
 	case ModeGameOver:
-
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 			g.mode = ModeMenu
 			g.score = 0
@@ -201,7 +200,6 @@ func (g *Game) Update() error {
 			g.scene.reset()
 			g.player.reset()
 		}
-
 	}
 
 	return nil
@@ -292,9 +290,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		titleTexts := []string{"GAME OVER"}
 
 		for i, l := range titleTexts {
-			x := (ScreenWidth - len(l)*tileSize) / 24
+			x := (ScreenWidth - len(l)*tileSize) / 2
 			text.Draw(screen, l, gameFont, x, (ScreenHeight-tileSize)/2+tileSize*i, color.White)
 		}
+
+		text.Draw(screen, fmt.Sprintf("Score: %v", g.score), scoreFont, (ScreenWidth-len(fmt.Sprintf("Score: %v", g.score))*tileSize)/2+50, (ScreenHeight-tileSize)/2+35, color.White)
 
 	}
 
